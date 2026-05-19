@@ -1,0 +1,10 @@
+runtime: nodejs18
+
+env_variables:
+  ADMIN_PASSWORD: "2434"
+  JWT_SECRET: "change-this-to-a-random-secret"
+  UPI_ID: "yourname@upi"
+  MERCHANT_NAME: "VOID Store"
+  DELIVERY_CHARGE: "99"
+  FREE_DELIVERY_ABOVE: "1999"
+  # CLOUDINARY_URL: "cloudinary://KEY:SECRET@CLOUDNAME"
