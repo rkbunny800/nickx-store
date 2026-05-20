@@ -341,6 +341,7 @@ footer{border-top:1px solid var(--glass-border);padding:36px 48px;display:grid;g
   </div>
 </section>
 <!-- MARQUEE -->
+<div style="text-align:center;font-family:var(--font-condensed);font-size:12px;letter-spacing:0.28em;color:var(--muted);text-transform:uppercase;padding:8px 0;">scroll down for products</div>
 <div class="marquee-wrap">
   <div class="marquee-track">
     <div class="marquee-item"><span class="dot"></span>NICKX</div>
@@ -361,7 +362,6 @@ footer{border-top:1px solid var(--glass-border);padding:36px 48px;display:grid;g
 </div>
 <!-- COLLECTION -->
 <section id="collection">
-  <div style="text-align:center;font-family:var(--font-condensed);font-size:10px;letter-spacing:0.28em;color:var(--muted);text-transform:uppercase;margin-bottom:24px;">scroll down for products</div>
   <div class="section-tag">always in stock · fast delivery</div>
   <h2 class="section-title">THE DROP</h2>
   <div class="filters-wrap">
@@ -441,8 +441,20 @@ footer{border-top:1px solid var(--glass-border);padding:36px 48px;display:grid;g
         <div id="auth-login">
           <div class="field"><label>Email <span class="req">*</span></label><input type="email" id="login-email" placeholder="you@email.com"/></div>
           <div class="field"><label>Password <span class="req">*</span></label><input type="password" id="login-password" placeholder="••••••••"/></div>
+          <button class="btn-glass" style="width:100%;justify-content:center;padding:10px;margin-top:6px;" onclick="showForgotPassword()">Forgot Password?</button>
           <div class="f-err" id="login-err"></div>
           <button class="btn-glass primary" style="width:100%;justify-content:center;padding:12px;margin-top:6px;" onclick="doLogin()">Login & Continue</button>
+        </div>
+        <div id="auth-forgot" style="display:none;">
+          <div class="field"><label>Email <span class="req">*</span></label><input type="email" id="forgot-email" placeholder="you@email.com"/></div>
+          <button class="btn-glass primary" style="width:100%;justify-content:center;padding:12px;margin-top:6px;" onclick="sendResetOtp()">Send OTP</button>
+          <div id="forgot-stage-2" style="display:none;margin-top:12px;">
+            <div class="field"><label>Enter 6-Digit OTP <span class="req">*</span></label><input type="text" id="forgot-otp" placeholder="123456" maxlength="6"/></div>
+            <div class="field"><label>Enter New Password <span class="req">*</span></label><input type="password" id="forgot-new-password" placeholder="new password"/></div>
+            <button class="btn-glass primary" style="width:100%;justify-content:center;padding:12px;margin-top:6px;" onclick="confirmResetPassword()">Confirm Reset</button>
+          </div>
+          <button class="btn-glass" style="width:100%;justify-content:center;padding:10px;margin-top:10px;" onclick="backToLogin()">Back to Login</button>
+          <div class="f-err" id="forgot-err"></div>
         </div>
         <div id="auth-register" style="display:none;">
           <div class="field-row">
@@ -542,7 +554,7 @@ footer{border-top:1px solid var(--glass-border);padding:36px 48px;display:grid;g
       <div id="co-summary-items"></div>
       <div class="sum-totals">
         <div class="sum-row"><span>Subtotal</span><span id="co-subtotal">₹0</span></div>
-        <div class="sum-row"><span>Delivery</span><span id="co-delivery">₹99</span></div>
+        <div class="sum-row"><span>Delivery</span><span id="co-delivery">₹0</span></div>
         <div class="sum-row grand"><span>Total</span><span id="co-total">₹0</span></div>
       </div>
       <div style="margin-top:16px;padding:11px;border:1px solid var(--glass-border);font-size:10px;color:var(--muted);line-height:2;">
@@ -561,10 +573,11 @@ document.querySelectorAll('a,button,input,select,.product-card,.filter-btn').for
 });
 let allProducts=[],cart=JSON.parse(localStorage.getItem('void_cart')||'[]');
 let activeCat='all',searchQ='',priceMin=null,priceMax=null,searchTimer=null;
-let siteConfig={upiId:'',merchantName:'NICKX',deliveryCharge:99,freeDeliveryAbove:1999};
+let siteConfig={upiId:'9573520949-2@ybl',merchantName:'NICKX',deliveryCharge:0,freeDeliveryAbove:1999};
 let customerToken=localStorage.getItem('void_customer_token')||'';
 let customerData=JSON.parse(localStorage.getItem('void_customer_data')||'null');
 let selectedAddress=null,tempOrderRef=null,calculatedDelivery=null,deliveryInfo=null;
+let forgotEmail='';
 async function loadConfig(){try{const r=await fetch('/api/config');const d=await r.json();if(d.upiId!==undefined)siteConfig=d;if(d.heroGifUrl){const container=document.getElementById('hero-gif-container');container.innerHTML=`<img src="${d.heroGifUrl}" alt="Hero GIF" style="width:100%;height:100%;object-fit:cover;"/>`;}}catch{}}
 async function fetchProducts(){
   showSkeleton();
@@ -646,7 +659,65 @@ function coGoStep(n){
   document.getElementById('checkout-overlay').scrollTo({top:0,behavior:'smooth'});
   if(n===3)buildQR();
 }
-window.showAuthTab=function(tab){document.getElementById('auth-login').style.display=tab==='login'?'block':'none';document.getElementById('auth-register').style.display=tab==='register'?'block':'none';document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='register')));};
+window.showAuthTab=function(tab){document.getElementById('auth-forgot').style.display='none';document.getElementById('auth-login').style.display=tab==='login'?'block':'none';document.getElementById('auth-register').style.display=tab==='register'?'block':'none';document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='register')));};
+window.showForgotPassword=function(){
+  document.getElementById('auth-login').style.display='none';
+  document.getElementById('auth-register').style.display='none';
+  document.getElementById('auth-forgot').style.display='block';
+  document.getElementById('forgot-stage-2').style.display='none';
+  document.getElementById('forgot-err').classList.remove('show');
+};
+window.backToLogin=function(){
+  document.getElementById('auth-forgot').style.display='none';
+  document.getElementById('auth-login').style.display='block';
+  document.getElementById('forgot-err').classList.remove('show');
+};
+window.sendResetOtp=async function(){
+  const email=document.getElementById('forgot-email').value.trim();
+  const err=document.getElementById('forgot-err');
+  err.classList.remove('show');
+  if(!email){err.textContent='Enter your email';err.classList.add('show');return;}
+  try{
+    const r=await fetch('/api/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const d=await r.json();
+    if(d.success){
+      forgotEmail=email;
+      document.getElementById('forgot-stage-2').style.display='block';
+      showToast('OTP sent to your email');
+    }else{
+      err.textContent=d.message||'Failed to send OTP';
+      err.classList.add('show');
+    }
+  }catch{
+    err.textContent='Server error';
+    err.classList.add('show');
+  }
+};
+window.confirmResetPassword=async function(){
+  const otp=document.getElementById('forgot-otp').value.trim();
+  const newPassword=document.getElementById('forgot-new-password').value;
+  const err=document.getElementById('forgot-err');
+  err.classList.remove('show');
+  if(!forgotEmail||!otp||!newPassword){err.textContent='Fill all fields';err.classList.add('show');return;}
+  try{
+    const r=await fetch('/api/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:forgotEmail,otp,newPassword})});
+    const d=await r.json();
+    if(d.success){
+      showToast('Password reset successful');
+      document.getElementById('forgot-email').value='';
+      document.getElementById('forgot-otp').value='';
+      document.getElementById('forgot-new-password').value='';
+      forgotEmail='';
+      backToLogin();
+    }else{
+      err.textContent=d.message||'Password reset failed';
+      err.classList.add('show');
+    }
+  }catch{
+    err.textContent='Server error';
+    err.classList.add('show');
+  }
+};
 window.doLogin=async function(){
   const email=document.getElementById('login-email').value.trim();const pw=document.getElementById('login-password').value;const err=document.getElementById('login-err');err.classList.remove('show');
   if(!email||!pw){err.textContent='Fill all fields';err.classList.add('show');return;}
@@ -691,10 +762,10 @@ window.submitAddress=async function(){
       deliveryInfo={distanceKm:d.distanceKm,zoneLabel:d.label};
       status.innerHTML=`Delivery to ${address.city}: ${d.label} — ₹${d.price} (${d.distanceKm} km)`;
       status.style.color='var(--yellow)';
-    }else if(d.fallback){
-      calculatedDelivery=d.price;
-      deliveryInfo={distanceKm:null,zoneLabel:d.label};
-      status.textContent=`Could not calculate exact distance. Standard delivery: ₹${d.price}`;
+    }else if(d.fallbackZone){
+      calculatedDelivery=d.fallbackZone.price;
+      deliveryInfo={distanceKm:null,zoneLabel:d.fallbackZone.label};
+      status.textContent=`${d.message} Applying ${d.fallbackZone.label} tier: ₹${d.fallbackZone.price}`;
       status.style.color='var(--muted)';
     }else{
       calculatedDelivery=null;
@@ -705,7 +776,7 @@ window.submitAddress=async function(){
   }catch{
     calculatedDelivery=null;
     deliveryInfo=null;
-    status.textContent='Delivery calculation failed. Using standard rate.';
+    status.textContent='Delivery calculation failed. Please enter a more specific address or PIN code.';
     status.style.color='#ff6060';
   }
   renderCoSummary();

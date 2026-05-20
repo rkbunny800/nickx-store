@@ -7,16 +7,24 @@ const fs       = require("fs");
 const bcrypt   = require("bcryptjs");
 const { v4: uuidv4 } = require("uuid");
 const jwt      = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
 const JWT_SECRET          = process.env.JWT_SECRET          || "void-secret-change-in-production";
 const ADMIN_PASSWORD      = process.env.ADMIN_PASSWORD      || "2434";
-const UPI_ID              = process.env.UPI_ID              || "";
+const UPI_ID              = process.env.UPI_ID              || "9573520949-2@ybl";
 const MERCHANT_NAME       = process.env.MERCHANT_NAME       || "VOID Store";
-const DELIVERY_CHARGE     = parseInt(process.env.DELIVERY_CHARGE)     || 99;
 const FREE_DELIVERY_ABOVE = parseInt(process.env.FREE_DELIVERY_ABOVE) || 999;
+
+const mailTransporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
 
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
@@ -119,6 +127,32 @@ function loadDeliveryConfig() {
   });
 }
 function saveDeliveryConfig(config) { saveJson("delivery-config.json", config); }
+function normalizeZones(zones = []) {
+  return [...zones]
+    .map(z => ({
+      label: z.label,
+      minKm: Number(z.minKm),
+      maxKm: Number(z.maxKm),
+      price: Number(z.price)
+    }))
+    .filter(z => z.label && Number.isFinite(z.minKm) && Number.isFinite(z.maxKm) && Number.isFinite(z.price))
+    .sort((a, b) => a.minKm - b.minKm);
+}
+function getNationalMaxZone(zones = []) {
+  const validZones = normalizeZones(zones);
+  return validZones.reduce((max, zone) => {
+    if (!max) return zone;
+    if (zone.maxKm > max.maxKm) return zone;
+    if (zone.maxKm === max.maxKm && zone.price > max.price) return zone;
+    return max;
+  }, null);
+}
+function getZoneForDistance(distanceKm, zones = []) {
+  const validZones = normalizeZones(zones);
+  const matched = validZones.find(z => distanceKm >= z.minKm && distanceKm <= z.maxKm);
+  if (matched) return matched;
+  return getNationalMaxZone(validZones);
+}
 
 app.get("/api/delivery-config",(req,res)=>res.json({success:true,data:loadDeliveryConfig()}));
 app.post("/api/delivery-config", requireAdmin, async(req,res)=>{
@@ -132,8 +166,14 @@ app.post("/api/calculate-delivery", async(req,res)=>{
   try {
     const { destAddress, destLat, destLng } = req.body;
     const config = loadDeliveryConfig();
-    if (!config.sourceLat || !config.sourceLng) {
+    const sourceLat = Number(config.sourceLat);
+    const sourceLng = Number(config.sourceLng);
+    if (!Number.isFinite(sourceLat) || !Number.isFinite(sourceLng)) {
       return res.json({success:false,message:"Source location not configured"});
+    }
+    const maxZone = getNationalMaxZone(config.zones);
+    if (!maxZone) {
+      return res.status(400).json({success:false,message:"Delivery zones not configured"});
     }
     let destCoords;
     if (destLat && destLng) {
@@ -141,14 +181,16 @@ app.post("/api/calculate-delivery", async(req,res)=>{
     } else if (destAddress) {
       destCoords = await geocodeAddress(destAddress);
       if (!destCoords) {
-        const maxZone = config.zones[config.zones.length - 1];
-        return res.json({success:true,distanceKm:null,zone:maxZone.label,price:maxZone.price,label:maxZone.label,fallback:true});
+        return res.status(400).json({success:false,message:"Could not locate this address. Please provide a more specific address or PIN code.",fallbackZone:{label:maxZone.label,price:maxZone.price}});
       }
     } else {
       return res.status(400).json({success:false,message:"Destination required"});
     }
-    const distanceKm = haversineKm(config.sourceLat, config.sourceLng, destCoords.lat, destCoords.lng);
-    const zone = config.zones.find(z => distanceKm >= z.minKm && distanceKm < z.maxKm) || config.zones[config.zones.length - 1];
+    const distanceKm = haversineKm(sourceLat, sourceLng, destCoords.lat, destCoords.lng);
+    const zone = getZoneForDistance(distanceKm, config.zones);
+    if (!zone) {
+      return res.status(400).json({success:false,message:"No delivery zone available for this address"});
+    }
     res.json({success:true,distanceKm:Math.round(distanceKm * 10) / 10,zone:zone.label,price:zone.price,label:zone.label});
   } catch(err) { res.status(500).json({success:false,message:err.message}); }
 });
@@ -156,7 +198,9 @@ app.post("/api/calculate-delivery", async(req,res)=>{
 // ── Config endpoint ───────────────────────────────────────────────────────────
 app.get("/api/config",(req,res)=>{
   const heroGifUrl = loadJson("hero-gif.json", {url:null}).url;
-  res.json({success:true,upiId:UPI_ID,merchantName:MERCHANT_NAME,deliveryCharge:DELIVERY_CHARGE,freeDeliveryAbove:FREE_DELIVERY_ABOVE,heroGifUrl});
+  const config = loadDeliveryConfig();
+  const maxZone = getNationalMaxZone(config.zones);
+  res.json({success:true,upiId:UPI_ID,merchantName:MERCHANT_NAME,deliveryCharge:maxZone ? maxZone.price : 0,freeDeliveryAbove:FREE_DELIVERY_ABOVE,heroGifUrl});
 });
 
 // ── Hero GIF upload ────────────────────────────────────────────────────────────
@@ -184,7 +228,7 @@ app.post("/api/customers/register", async(req,res)=>{
     const customers=loadJson("customers.json",[]);
     if(customers.find(c=>c.email===email.toLowerCase())) return res.status(400).json({success:false,message:"Email already registered. Please login."});
     const hashed=await bcrypt.hash(password,10);
-    const customer={id:uuidv4(),name:name.trim(),email:email.toLowerCase().trim(),password:hashed,phone:phone||"",addresses:[],createdAt:new Date().toISOString()};
+    const customer={id:uuidv4(),name:name.trim(),email:email.toLowerCase().trim(),password:hashed,phone:phone||"",addresses:[],resetOTP:null,otpExpiry:null,createdAt:new Date().toISOString()};
     customers.push(customer);
     saveJson("customers.json",customers);
     const token=jwt.sign({customerId:customer.id,email:customer.email},JWT_SECRET,{expiresIn:"30d"});
@@ -201,6 +245,57 @@ app.post("/api/customers/login", async(req,res)=>{
     const token=jwt.sign({customerId:c.id,email:c.email},JWT_SECRET,{expiresIn:"30d"});
     res.json({success:true,token,customer:{id:c.id,name:c.name,email:c.email,phone:c.phone}});
   }catch(err){res.status(500).json({success:false,message:err.message});}
+});
+
+app.post("/api/forgot-password", async(req,res)=>{
+  try {
+    const email = req.body.email?.toLowerCase().trim();
+    if (!email) return res.status(400).json({success:false,message:"Email is required"});
+    const customers = loadJson("customers.json",[]);
+    const idx = customers.findIndex(c => c.email === email);
+    if (idx === -1) return res.status(404).json({success:false,message:"No account found with this email"});
+    const otp = `${Math.floor(100000 + Math.random() * 900000)}`;
+    const otpExpiry = Date.now() + 10 * 60 * 1000;
+    customers[idx].resetOTP = otp;
+    customers[idx].otpExpiry = otpExpiry;
+    saveJson("customers.json", customers);
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      return res.status(500).json({success:false,message:"Email service is not configured"});
+    }
+    await mailTransporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Password Reset OTP",
+      html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e5e5;"><h2 style="margin:0 0 12px;">Password Reset Request</h2><p style="margin:0 0 12px;">Use this OTP to reset your password:</p><div style="font-size:30px;font-weight:700;letter-spacing:8px;margin:12px 0 16px;">${otp}</div><p style="margin:0;color:#666;">This OTP expires in 10 minutes.</p></div>`
+    });
+    res.json({success:true,message:"OTP sent to your email"});
+  } catch(err) {
+    res.status(500).json({success:false,message:err.message});
+  }
+});
+
+app.post("/api/reset-password", async(req,res)=>{
+  try {
+    const email = req.body.email?.toLowerCase().trim();
+    const otp = req.body.otp?.trim();
+    const newPassword = req.body.newPassword;
+    if (!email || !otp || !newPassword) return res.status(400).json({success:false,message:"Email, OTP and new password are required"});
+    if (newPassword.length < 6) return res.status(400).json({success:false,message:"Password must be at least 6 characters"});
+    const customers = loadJson("customers.json",[]);
+    const idx = customers.findIndex(c => c.email === email);
+    if (idx === -1) return res.status(404).json({success:false,message:"No account found with this email"});
+    const customer = customers[idx];
+    if (!customer.resetOTP || !customer.otpExpiry) return res.status(400).json({success:false,message:"No active OTP request"});
+    if (Date.now() > Number(customer.otpExpiry)) return res.status(400).json({success:false,message:"OTP has expired"});
+    if (customer.resetOTP !== otp) return res.status(400).json({success:false,message:"Invalid OTP"});
+    customers[idx].password = await bcrypt.hash(newPassword, 10);
+    customers[idx].resetOTP = null;
+    customers[idx].otpExpiry = null;
+    saveJson("customers.json", customers);
+    res.json({success:true,message:"Password reset successful"});
+  } catch(err) {
+    res.status(500).json({success:false,message:err.message});
+  }
 });
 
 app.get("/api/customers/me", requireCustomer,(req,res)=>{
