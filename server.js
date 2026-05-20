@@ -8,6 +8,7 @@ const bcrypt   = require("bcryptjs");
 const { v4: uuidv4 } = require("uuid");
 const jwt      = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const { getDistance } = require("geolib");
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -164,60 +165,31 @@ app.post("/api/delivery-config", requireAdmin, async(req,res)=>{
 });
 app.post("/api/calculate-delivery", async(req,res)=>{
   try {
-    const { destAddress, destLat, destLng } = req.body;
+    const { destLat, destLng } = req.body;
     const config = loadDeliveryConfig();
     const sourceLat = Number(config.sourceLat);
     const sourceLng = Number(config.sourceLng);
     if (!Number.isFinite(sourceLat) || !Number.isFinite(sourceLng)) {
       return res.json({success:false,message:"Source location not configured"});
     }
-    const maxZone = getNationalMaxZone(config.zones);
-    if (!maxZone) {
-      return res.status(400).json({success:false,message:"Delivery zones not configured"});
+    const customerLat = Number(destLat);
+    const customerLng = Number(destLng);
+    if (!Number.isFinite(customerLat) || !Number.isFinite(customerLng)) {
+      return res.status(400).json({success:false,message:"Customer coordinates are required"});
     }
-    let destCoords;
-    if (destLat && destLng) {
-      destCoords = { lat: parseFloat(destLat), lng: parseFloat(destLng) };
-    } else if (destAddress) {
-      destCoords = await geocodeAddress(destAddress);
-      if (!destCoords) {
-        return res.status(400).json({success:false,message:"Could not locate this address. Please provide a more specific address or PIN code.",fallbackZone:{label:maxZone.label,price:maxZone.price}});
-      }
-    } else {
-      return res.status(400).json({success:false,message:"Destination required"});
-    }
-    console.log("[delivery] requested address text:", destAddress || "");
-    console.log("[delivery] geocoded lat/lng:", { lat: destCoords.lat, lng: destCoords.lng });
 
-    let distanceMeters;
-    try {
-      const { getDistance } = require("geolib");
-      distanceMeters = getDistance(
-        { latitude: sourceLat, longitude: sourceLng },
-        { latitude: destCoords.lat, longitude: destCoords.lng }
-      );
-    } catch {
-      distanceMeters = haversineKm(sourceLat, sourceLng, destCoords.lat, destCoords.lng) * 1000;
-    }
-    const distanceKm = Number(distanceMeters) / 1000;
+    const distanceMeters = getDistance(
+      { latitude: sourceLat, longitude: sourceLng },
+      { latitude: customerLat, longitude: customerLng }
+    );
+    const distanceKm = distanceMeters / 1000;
 
-    const validZones = normalizeZones(config.zones);
-    let zone = null;
-    for (const z of validZones) {
-      const minKm = Number(z.minKm);
-      const maxKm = Number(z.maxKm);
-      if (distanceKm >= minKm && distanceKm < maxKm) {
-        zone = z;
-        break;
-      }
-    }
-    if (!zone) zone = getNationalMaxZone(validZones);
-    if (!zone) {
-      return res.status(400).json({success:false,message:"No delivery zone available for this address"});
-    }
-    console.log("[delivery] final calculated distance km:", distanceKm);
-    console.log("[delivery] matched zone + price:", { zone: zone.label, price: zone.price });
-    res.json({success:true,distanceKm:Math.round(distanceKm * 10) / 10,zone:zone.label,price:zone.price,label:zone.label});
+    let price = 80;
+    if (distanceKm <= 60) price = 40;
+    else if (distanceKm <= 100) price = 55;
+    else if (distanceKm <= 200) price = 70;
+
+    res.json({success:true,distanceKm:Math.round(distanceKm * 10) / 10,price});
   } catch(err) { res.status(500).json({success:false,message:err.message}); }
 });
 

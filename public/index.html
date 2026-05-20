@@ -504,6 +504,11 @@ footer{border-top:1px solid var(--glass-border);padding:36px 48px;display:grid;g
           </div>
           <div class="field"><label>PIN Code <span class="req">*</span></label><input type="text" id="a-pin" placeholder="560001" maxlength="6"/></div>
         </div>
+        <div class="field-row">
+          <div class="field"><label>Latitude (from Google Maps) <span class="req">*</span></label><input type="number" id="a-latitude" placeholder="12.9715987" step="any"/></div>
+          <div class="field"><label>Longitude (from Google Maps) <span class="req">*</span></label><input type="number" id="a-longitude" placeholder="77.5945627" step="any"/></div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:-4px;margin-bottom:10px;">Long press on your location in Google Maps to get your exact coordinates.</div>
         <div class="f-err" id="addr-err"></div>
         <div id="delivery-calc-status" style="margin-top:12px;font-size:11px;color:var(--muted);"></div>
         <div style="display:flex;gap:9px;margin-top:14px;">
@@ -606,6 +611,7 @@ let customerData=JSON.parse(localStorage.getItem('void_customer_data')||'null');
 let selectedAddress=null,tempOrderRef=null,calculatedDelivery=null,deliveryInfo=null;
 let savedAddresses=[];
 let selectedSavedAddressIndex=0;
+let isCustomLocationFlow=false;
 let forgotEmail='';
 async function loadConfig(){try{const r=await fetch('/api/config');const d=await r.json();if(d.upiId!==undefined)siteConfig=d;if(d.heroGifUrl){const container=document.getElementById('hero-gif-container');container.innerHTML=`<img src="${d.heroGifUrl}" alt="Hero GIF" style="width:100%;height:100%;object-fit:cover;"/>`;}}catch{}}
 async function fetchProducts(){
@@ -715,10 +721,12 @@ function showAddressChoiceModal(){
 }
 function hideAddressChoiceModal(){document.getElementById('addr-choice-overlay').classList.remove('open');}
 window.confirmCustomAddressChoice=function(){
+  isCustomLocationFlow=true;
   hideAddressChoiceModal();
   coGoStep(2);
 };
 window.confirmSavedAddressChoice=async function(){
+  isCustomLocationFlow=false;
   if(!savedAddresses.length){showToast('no saved address found');return;}
   selectedSavedAddressIndex=parseInt(document.getElementById('saved-choice-select').value,10)||0;
   selectedAddress=savedAddresses[selectedSavedAddressIndex];
@@ -812,14 +820,18 @@ async function loadSavedAddresses(){
     if(document.getElementById('addr-choice-overlay').classList.contains('open'))showAddressChoiceModal();
   }catch{}
 }
-window.pickAddr=function(i){const a=window._savedAddrs[i];['a-name','a-mobile','a-line1','a-line2','a-landmark','a-city','a-district','a-state','a-pin'].forEach((id,j)=>{document.getElementById(id).value=[a.fullName,a.mobile,a.line1,a.line2,a.landmark||'',a.city,a.district,a.state,a.pin][j];});document.querySelectorAll('.saved-addr').forEach((el,j)=>el.classList.toggle('selected',i===j));};
+window.pickAddr=function(i){const a=window._savedAddrs[i];['a-name','a-mobile','a-line1','a-line2','a-landmark','a-city','a-district','a-state','a-pin','a-latitude','a-longitude'].forEach((id,j)=>{document.getElementById(id).value=[a.fullName,a.mobile,a.line1,a.line2,a.landmark||'',a.city,a.district,a.state,a.pin,a.latitude??'',a.longitude??''][j];});document.querySelectorAll('.saved-addr').forEach((el,j)=>el.classList.toggle('selected',i===j));};
 async function calculateDeliveryForAddress(address){
   const status=document.getElementById('delivery-calc-status');
   status.textContent='Calculating delivery...';
   status.style.color='var(--muted)';
   try{
-    const fullAddress=`${address.line1}, ${address.line2}, ${address.city}, ${address.district}, ${address.state} ${address.pin}`;
-    const r=await fetch('/api/calculate-delivery',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({destAddress:fullAddress})});
+    const payload={
+      destAddress:`${address.line1}, ${address.line2}, ${address.city}, ${address.district}, ${address.state} ${address.pin}`,
+      destLat:address.latitude,
+      destLng:address.longitude
+    };
+    const r=await fetch('/api/calculate-delivery',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const d=await r.json();
     if(d.success){
       calculatedDelivery=d.price;
@@ -847,11 +859,22 @@ async function calculateDeliveryForAddress(address){
 }
 window.submitAddress=async function(){
   const err=document.getElementById('addr-err');err.classList.remove('show');
-  const address={fullName:document.getElementById('a-name').value.trim(),mobile:document.getElementById('a-mobile').value.trim(),line1:document.getElementById('a-line1').value.trim(),line2:document.getElementById('a-line2').value.trim(),landmark:document.getElementById('a-landmark').value.trim(),city:document.getElementById('a-city').value.trim(),district:document.getElementById('a-district').value.trim(),state:document.getElementById('a-state').value,pin:document.getElementById('a-pin').value.trim()};
+  const address={fullName:document.getElementById('a-name').value.trim(),mobile:document.getElementById('a-mobile').value.trim(),line1:document.getElementById('a-line1').value.trim(),line2:document.getElementById('a-line2').value.trim(),landmark:document.getElementById('a-landmark').value.trim(),city:document.getElementById('a-city').value.trim(),district:document.getElementById('a-district').value.trim(),state:document.getElementById('a-state').value,pin:document.getElementById('a-pin').value.trim(),latitude:document.getElementById('a-latitude').value.trim(),longitude:document.getElementById('a-longitude').value.trim()};
   const req=['fullName','mobile','line1','line2','city','district','state','pin'];const lbl={fullName:'Full Name',mobile:'Mobile',line1:'House/Flat',line2:'Street',city:'City',district:'District',state:'State',pin:'PIN Code'};
   for(const f of req){if(!address[f]){err.textContent=`Fill: ${lbl[f]}`;err.classList.add('show');return;}}
   if(!/^[0-9]{10}$/.test(address.mobile)){err.textContent='Mobile must be 10 digits';err.classList.add('show');return;}
   if(!/^[0-9]{6}$/.test(address.pin)){err.textContent='PIN must be 6 digits';err.classList.add('show');return;}
+  if(isCustomLocationFlow){
+    if(!address.latitude||!address.longitude){err.textContent='Latitude and longitude are required for custom location';err.classList.add('show');return;}
+    const lat=parseFloat(address.latitude);
+    const lng=parseFloat(address.longitude);
+    if(!Number.isFinite(lat)||!Number.isFinite(lng)){err.textContent='Enter valid latitude and longitude values';err.classList.add('show');return;}
+    address.latitude=lat;
+    address.longitude=lng;
+  }else{
+    address.latitude=address.latitude?parseFloat(address.latitude):null;
+    address.longitude=address.longitude?parseFloat(address.longitude):null;
+  }
   selectedAddress=address;
   if(customerToken)fetch('/api/customers/address',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+customerToken},body:JSON.stringify(address)}).catch(()=>{});
   await calculateDeliveryForAddress(address);
