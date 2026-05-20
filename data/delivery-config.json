@@ -1,0 +1,11 @@
+{
+  "sourceAddress": "",
+  "sourceLat": null,
+  "sourceLng": null,
+  "zones": [
+    { "label": "Local", "minKm": 0, "maxKm": 15, "price": 20 },
+    { "label": "City", "minKm": 15, "maxKm": 40, "price": 30 },
+    { "label": "State", "minKm": 40, "maxKm": 200, "price": 60 },
+    { "label": "National", "minKm": 200, "maxKm": 99999, "price": 100 }
+  ]
+}

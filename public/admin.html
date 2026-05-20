@@ -211,6 +211,7 @@
     <span class="storage-badge" id="storage-badge" style="display:none">⏳ CHECKING</span>
     <a href="/" class="btn-glass">← Storefront</a>
     <button class="btn-glass" onclick="showTab('products')" id="tab-products-btn">PRODUCTS</button>
+    <button class="btn-glass" onclick="showTab('delivery')" id="tab-delivery-btn">DELIVERY</button>
     <button class="btn-glass" onclick="showTab('orders')" id="tab-orders-btn">ORDERS <span id="orders-badge" style="background:var(--yellow);color:#000;font-size:8px;padding:1px 5px;margin-left:2px;"></span></button>
     <button class="btn-glass" onclick="logout()">LOGOUT</button>
   </div>
@@ -346,6 +347,91 @@
   <div id="orders-list"></div>
 </div>
 
+<!-- Delivery Tab -->
+<div id="delivery-tab" style="display:none;padding:40px 48px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+    <div>
+      <div style="font-family:var(--font-display);font-size:36px;">DELIVERY SETTINGS</div>
+      <div style="font-size:10px;color:var(--muted);letter-spacing:0.15em;">Configure source location and delivery zones</div>
+    </div>
+    <button class="btn-glass" onclick="fetchDeliveryConfig()">↺ Refresh</button>
+  </div>
+
+  <!-- Source Location -->
+  <div style="border:1px solid var(--glass-border);background:var(--dark);padding:24px;margin-bottom:24px;">
+    <div style="font-family:var(--font-display);font-size:20px;margin-bottom:16px;">SOURCE LOCATION</div>
+    <div class="field">
+      <label>Shop / Warehouse Address</label>
+      <input type="text" id="source-address" placeholder="12 MG Road, Koramangala, Bengaluru 560001" />
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px;">
+      <button class="btn-glass primary" onclick="saveSourceLocation()">SAVE & GEOCODE</button>
+    </div>
+    <div id="source-status" style="margin-top:12px;font-size:11px;color:var(--muted);"></div>
+  </div>
+
+  <!-- Hero GIF -->
+  <div style="border:1px solid var(--glass-border);background:var(--dark);padding:24px;margin-bottom:24px;">
+    <div style="font-family:var(--font-display);font-size:20px;margin-bottom:16px;">HERO GIF</div>
+    <div class="field">
+      <label>Hero GIF (1080x1080) <span style="color:var(--muted);font-weight:400;">(GIF · JPG · PNG · WEBP)</span></label>
+      <div class="image-upload-area">
+        <div id="current-hero-note" style="display:none;" class="current-image-note">
+          <img id="current-hero-thumb" src="" alt="" style="max-width:200px;" />
+          <span>Current GIF — leave empty to keep it</span>
+        </div>
+        <div class="drop-zone" id="hero-zone">
+          <input type="file" id="hero-input" accept=".gif,.jpg,.jpeg,.png,.webp" />
+          <div class="drop-label">
+            <div style="font-size:32px;margin-bottom:8px;">📁</div>
+            <div>Drag & drop or click to upload</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;">1080x1080 recommended</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px;">
+      <button class="btn-glass primary" onclick="saveHeroGif()">SAVE HERO GIF</button>
+    </div>
+    <div id="hero-status" style="margin-top:12px;font-size:11px;color:var(--muted);"></div>
+  </div>
+
+  <!-- Delivery Zones -->
+  <div style="border:1px solid var(--glass-border);background:var(--dark);padding:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-family:var(--font-display);font-size:20px;">DELIVERY ZONES</div>
+      <button class="btn-glass" onclick="showAddZoneForm()">+ ADD ZONE</button>
+    </div>
+    <div id="add-zone-form" style="display:none;margin-bottom:16px;padding:16px;background:var(--card);border:1px solid var(--glass-border);">
+      <div class="field-row">
+        <div class="field">
+          <label>Label</label>
+          <input type="text" id="new-zone-label" placeholder="Local" />
+        </div>
+        <div class="field">
+          <label>Min KM</label>
+          <input type="number" id="new-zone-min" placeholder="0" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Max KM</label>
+          <input type="number" id="new-zone-max" placeholder="15" />
+        </div>
+        <div class="field">
+          <label>Price (₹)</label>
+          <input type="number" id="new-zone-price" placeholder="20" />
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <button class="btn-glass primary" onclick="addZone()">SAVE</button>
+        <button class="btn-glass" onclick="hideAddZoneForm()">CANCEL</button>
+      </div>
+    </div>
+    <div id="zones-table"></div>
+  </div>
+</div>
+
 <style>
 .order-card{border:1px solid var(--glass-border);background:var(--dark);margin-bottom:12px;overflow:hidden;}
 .order-header{display:grid;grid-template-columns:1fr auto auto;gap:16px;align-items:center;padding:16px 20px;border-bottom:1px solid var(--glass-border);}
@@ -364,6 +450,17 @@
 .order-total-line{font-family:var(--font-display);font-size:16px;color:var(--yellow);margin-top:4px;}
 .order-upi{font-size:10px;color:var(--muted);margin-top:4px;}
 .status-select{background:var(--glass-bg);border:1px solid var(--glass-border);color:var(--text);font-family:var(--font-body);font-size:10px;padding:6px 10px;cursor:pointer;letter-spacing:0.08em;}
+.zones-table{width:100%;border-collapse:collapse;}
+.zones-table th{text-align:left;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);padding:12px;border-bottom:1px solid var(--glass-border);}
+.zones-table td{padding:12px;border-bottom:1px solid var(--glass-border);font-size:11px;}
+.zones-table tr:last-child td{border-bottom:none;}
+.order-summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px;}
+.summary-card{border:1px solid var(--glass-border);background:var(--dark);padding:16px;}
+.summary-card .label{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.summary-card .value{font-family:var(--font-display);font-size:24px;color:var(--yellow);}
+.order-filters{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.order-filters button{padding:6px 14px;font-size:10px;}
+.order-filters button.active{background:var(--yellow);border-color:var(--yellow);color:#000;}
 @media(max-width:700px){.order-body{grid-template-columns:1fr;}.order-header{grid-template-columns:1fr auto;}}
 </style>
 
@@ -688,31 +785,256 @@ async function deleteProduct(id, name) {
 // ── Tab switching ─────────────────────────────────────────────────────────────
 function showTab(tab) {
   const isOrders = tab === 'orders';
-  document.querySelector('main').style.display = isOrders ? 'none' : 'grid';
+  const isDelivery = tab === 'delivery';
+  document.querySelector('main').style.display = (isOrders || isDelivery) ? 'none' : 'grid';
   document.getElementById('orders-tab').style.display = isOrders ? 'block' : 'none';
-  document.getElementById('tab-products-btn').style.borderColor = isOrders ? '' : 'var(--yellow)';
-  document.getElementById('tab-orders-btn').style.borderColor   = isOrders ? 'var(--yellow)' : '';
+  document.getElementById('delivery-tab').style.display = isDelivery ? 'block' : 'none';
+  document.getElementById('tab-products-btn').style.borderColor = (isOrders || isDelivery) ? '' : 'var(--yellow)';
+  document.getElementById('tab-delivery-btn').style.borderColor = isDelivery ? 'var(--yellow)' : '';
+  document.getElementById('tab-orders-btn').style.borderColor = isOrders ? 'var(--yellow)' : '';
   if (isOrders) fetchOrders();
+  if (isDelivery) fetchDeliveryConfig();
+}
+
+// ── Delivery Config ───────────────────────────────────────────────────────────
+let deliveryConfig = null;
+
+async function fetchDeliveryConfig() {
+  try {
+    const res = await fetch('/api/delivery-config');
+    const data = await res.json();
+    if (data.success) {
+      deliveryConfig = data.data;
+      document.getElementById('source-address').value = deliveryConfig.sourceAddress || '';
+      const status = document.getElementById('source-status');
+      if (deliveryConfig.sourceLat && deliveryConfig.sourceLng) {
+        status.textContent = `Source set: ${deliveryConfig.sourceAddress} (${deliveryConfig.sourceLat.toFixed(4)}, ${deliveryConfig.sourceLng.toFixed(4)})`;
+        status.style.color = 'var(--yellow)';
+      } else {
+        status.textContent = 'Source location not configured';
+        status.style.color = 'var(--muted)';
+      }
+      renderZonesTable();
+    }
+  } catch { alert('Failed to load delivery config'); }
+}
+
+async function saveSourceLocation() {
+  const address = document.getElementById('source-address').value;
+  if (!address) return alert('Please enter an address');
+  try {
+    const res = await apiReq('/api/delivery-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...deliveryConfig, sourceAddress: address })
+    });
+    const data = await res.json();
+    if (data.success) {
+      deliveryConfig = data.data;
+      fetchDeliveryConfig();
+    } else {
+      alert('Error: ' + data.message);
+    }
+  } catch { alert('Failed to save source location'); }
+}
+
+async function saveHeroGif() {
+  const input = document.getElementById('hero-input');
+  const file = input.files[0];
+  const status = document.getElementById('hero-status');
+  
+  if (!file) {
+    status.textContent = 'Please select a file to upload';
+    status.style.color = '#ff6060';
+    return;
+  }
+  
+  const formData = new FormData();
+  formData.append('heroGif', file);
+  
+  status.textContent = 'Uploading...';
+  status.style.color = 'var(--muted)';
+  
+  try {
+    const res = await apiReq('/api/hero-gif', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success) {
+      status.textContent = 'Hero GIF saved successfully!';
+      status.style.color = 'var(--yellow)';
+      input.value = '';
+    } else {
+      status.textContent = 'Error: ' + data.message;
+      status.style.color = '#ff6060';
+    }
+  } catch {
+    status.textContent = 'Failed to upload hero GIF';
+    status.style.color = '#ff6060';
+  }
+}
+
+function showAddZoneForm() {
+  document.getElementById('add-zone-form').style.display = 'block';
+}
+
+function hideAddZoneForm() {
+  document.getElementById('add-zone-form').style.display = 'none';
+  document.getElementById('new-zone-label').value = '';
+  document.getElementById('new-zone-min').value = '';
+  document.getElementById('new-zone-max').value = '';
+  document.getElementById('new-zone-price').value = '';
+}
+
+async function addZone() {
+  const label = document.getElementById('new-zone-label').value;
+  const minKm = parseFloat(document.getElementById('new-zone-min').value);
+  const maxKm = parseFloat(document.getElementById('new-zone-max').value);
+  const price = parseFloat(document.getElementById('new-zone-price').value);
+  if (!label || isNaN(minKm) || isNaN(maxKm) || isNaN(price)) return alert('Please fill all fields');
+  try {
+    const newZone = { label, minKm, maxKm, price };
+    const updatedZones = [...deliveryConfig.zones, newZone].sort((a, b) => a.minKm - b.minKm);
+    const res = await apiReq('/api/delivery-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...deliveryConfig, zones: updatedZones })
+    });
+    const data = await res.json();
+    if (data.success) {
+      deliveryConfig = data.data;
+      hideAddZoneForm();
+      renderZonesTable();
+    } else {
+      alert('Error: ' + data.message);
+    }
+  } catch { alert('Failed to add zone'); }
+}
+
+async function deleteZone(index) {
+  if (!confirm('Delete this zone?')) return;
+  try {
+    const updatedZones = deliveryConfig.zones.filter((_, i) => i !== index);
+    const res = await apiReq('/api/delivery-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...deliveryConfig, zones: updatedZones })
+    });
+    const data = await res.json();
+    if (data.success) {
+      deliveryConfig = data.data;
+      renderZonesTable();
+    } else {
+      alert('Error: ' + data.message);
+    }
+  } catch { alert('Failed to delete zone'); }
+}
+
+function renderZonesTable() {
+  const table = document.getElementById('zones-table');
+  if (!deliveryConfig || !deliveryConfig.zones.length) {
+    table.innerHTML = '<div style="padding:20px;color:var(--muted);text-align:center;">No zones configured</div>';
+    return;
+  }
+  table.innerHTML = `
+    <table class="zones-table">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Min KM</th>
+          <th>Max KM</th>
+          <th>Price (₹)</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${deliveryConfig.zones.map((zone, i) => `
+          <tr>
+            <td>${zone.label}</td>
+            <td>${zone.minKm}</td>
+            <td>${zone.maxKm}</td>
+            <td>₹${zone.price}</td>
+            <td>
+              <button class="btn-glass danger" style="padding:4px 8px;font-size:9px;" onclick="deleteZone(${i})">DELETE</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
 }
 
 // ── Orders ────────────────────────────────────────────────────────────────────
 const STATUS_OPTIONS = ['payment_pending','confirmed','shipped','delivered','cancelled'];
+let allOrders = [];
+let currentOrderFilter = 'all';
 
 async function fetchOrders() {
   try {
     const res  = await apiReq('/api/orders');
     const data = await res.json();
-    const orders = data.data || [];
-    document.getElementById('orders-count').textContent = `${orders.length} order${orders.length!==1?'s':''}`;
-    document.getElementById('orders-badge').textContent = orders.filter(o=>o.status==='payment_pending').length || '';
+    allOrders = data.data || [];
+    document.getElementById('orders-count').textContent = `${allOrders.length} order${allOrders.length!==1?'s':''}`;
+    document.getElementById('orders-badge').textContent = allOrders.filter(o=>o.status==='payment_pending').length || '';
+    renderOrderSummaryCards();
+    renderOrdersList();
+  } catch { document.getElementById('orders-list').innerHTML = '<div style="padding:40px;color:#ff6060;text-align:center;">Failed to load orders</div>'; }
+}
 
-    const list = document.getElementById('orders-list');
-    if (!orders.length) { list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);letter-spacing:0.1em;">No orders yet</div>'; return; }
+function renderOrderSummaryCards() {
+  const container = document.getElementById('orders-list');
+  const summary = allOrders.reduce((acc, o) => {
+    acc.total++;
+    if (o.status === 'payment_pending') acc.pending++;
+    if (o.status === 'confirmed') acc.confirmed++;
+    if (o.status === 'shipped') acc.shipped++;
+    if (o.status === 'delivered') acc.delivered++;
+    return acc;
+  }, { total: 0, pending: 0, confirmed: 0, shipped: 0, delivered: 0 });
+  
+  const cardsHtml = `
+    <div class="order-summary-cards">
+      <div class="summary-card"><div class="label">Total Orders</div><div class="value">${summary.total}</div></div>
+      <div class="summary-card"><div class="label">Pending Payment</div><div class="value">${summary.pending}</div></div>
+      <div class="summary-card"><div class="label">Confirmed</div><div class="value">${summary.confirmed}</div></div>
+      <div class="summary-card"><div class="label">Shipped</div><div class="value">${summary.shipped}</div></div>
+      <div class="summary-card"><div class="label">Delivered</div><div class="value">${summary.delivered}</div></div>
+    </div>
+  `;
+  
+  const filtersHtml = `
+    <div class="order-filters">
+      <button class="btn-glass ${currentOrderFilter === 'all' ? 'active' : ''}" onclick="filterOrders('all')">All</button>
+      <button class="btn-glass ${currentOrderFilter === 'payment_pending' ? 'active' : ''}" onclick="filterOrders('payment_pending')">Pending</button>
+      <button class="btn-glass ${currentOrderFilter === 'confirmed' ? 'active' : ''}" onclick="filterOrders('confirmed')">Confirmed</button>
+      <button class="btn-glass ${currentOrderFilter === 'shipped' ? 'active' : ''}" onclick="filterOrders('shipped')">Shipped</button>
+      <button class="btn-glass ${currentOrderFilter === 'delivered' ? 'active' : ''}" onclick="filterOrders('delivered')">Delivered</button>
+    </div>
+  `;
+  
+  container.innerHTML = cardsHtml + filtersHtml + '<div id="orders-list-inner"></div>';
+}
 
-    list.innerHTML = orders.map(o => {
-      const date = new Date(o.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-      const addr = o.address;
-      return `
+function filterOrders(filter) {
+  currentOrderFilter = filter;
+  renderOrderSummaryCards();
+  renderOrdersList();
+}
+
+function renderOrdersList() {
+  const list = document.getElementById('orders-list-inner');
+  const filteredOrders = currentOrderFilter === 'all' ? allOrders : allOrders.filter(o => o.status === currentOrderFilter);
+  
+  if (!filteredOrders.length) {
+    list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);letter-spacing:0.1em;">No orders</div>';
+    return;
+  }
+
+  list.innerHTML = filteredOrders.map(o => {
+    const date = new Date(o.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    const addr = o.address;
+    return `
       <div class="order-card">
         <div class="order-header">
           <div>
@@ -734,6 +1056,7 @@ async function fetchOrders() {
               ${addr.state} — ${addr.pin}<br>
               📞 ${addr.mobile}
             </div>
+            ${o.distanceKm ? `<div style="font-size:10px;color:var(--muted);margin-top:4px;">Distance: ${o.distanceKm} km · Zone: ${o.zoneLabel || 'N/A'}</div>` : ''}
           </div>
           <div>
             <div class="order-section-label">Items Ordered</div>
@@ -747,7 +1070,6 @@ async function fetchOrders() {
         </div>
       </div>`;
     }).join('');
-  } catch { document.getElementById('orders-list').innerHTML = '<div style="padding:40px;color:#ff6060;text-align:center;">Failed to load orders</div>'; }
 }
 
 async function updateOrderStatus(id, status) {

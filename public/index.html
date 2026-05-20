@@ -19,7 +19,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{--black:#050505;--dark:#0d0d0d;--card:#111;--yellow:#d4ff00;--glass-bg:rgba(255,255,255,0.04);--glass-border:rgba(255,255,255,0.09);--text:#fff;--muted:#888;--font-display:'Bebas Neue',sans-serif;--font-body:'DM Sans',sans-serif;--font-sub:'Syne',sans-serif;--font-condensed:'Barlow Condensed',sans-serif;--font-ui:'Outfit',sans-serif;--font-bold:'Archivo Black',sans-serif;}
 html{scroll-behavior:smooth;}
-body{background-color:#050505;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E");color:var(--text);font-family:var(--font-body);font-size:13px;overflow-x:hidden;cursor:none;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
+body{background-color:#050505;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E");color:var(--text);font-family:var(--font-body);font-size:14px;overflow-x:hidden;cursor:none;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
 @media (pointer: fine) {body {cursor: none;}}@media (pointer: coarse) {body,button,a,input,select {cursor: auto;}#cursor {display: none;}}#cursor{position:fixed;width:10px;height:10px;background:var(--yellow);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:difference;transition:width .18s,height .18s;}
 #cursor.expand{width:32px;height:32px;}
 ::-webkit-scrollbar{width:2px;} ::-webkit-scrollbar-thumb{background:var(--yellow);}
@@ -48,7 +48,13 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 #mobile-menu a{color:var(--text);text-decoration:none;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;display:block;padding:11px;border-bottom:1px solid var(--glass-border);}
 /* HERO */
 #hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:90px 48px 70px;position:relative;overflow:hidden;background-image:radial-gradient(ellipse 80% 60% at 70% 50%, rgba(212,255,0,0.04) 0%, transparent 70%),radial-gradient(ellipse 40% 70% at 10% 30%, rgba(212,255,0,0.025) 0%, transparent 60%),repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.012) 2px,rgba(255,255,255,0.012) 3px);}
-.hero-grid{display:none;}
+.hero-text{position:relative;z-index:1;}
+.hero-img-box{position:relative;z-index:1;height:500px;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;}
+.hero-img-box img{width:100%;height:100%;object-fit:cover;filter:grayscale(15%);}
+.hero-img-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--muted);border:1px dashed var(--glass-border);}
+.hero-img-placeholder .big{font-size:14px;letter-spacing:0.1em;text-transform:uppercase;}
+.hero-img-placeholder p{font-size:10px;letter-spacing:.2em;text-transform:uppercase;}
+.hero-badge{position:absolute;top:14px;right:14px;background:var(--yellow);color:#000;font-size:9px;letter-spacing:.15em;padding:4px 9px;font-weight:700;z-index:2;}
 .spray-overlay{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
 .hero-tag{font-family:var(--font-condensed);font-size:10px;letter-spacing:0.28em;color:var(--yellow);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
 .hero-tag::before{content:'';width:26px;height:1px;background:var(--yellow);}
@@ -57,16 +63,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .hero-script{font-family:var(--font-condensed);font-size:clamp(18px,2.5vw,28px);color:var(--yellow);margin-bottom:20px;font-weight:400;letter-spacing:0.22em;text-transform:uppercase;}
 .hero-sub{font-family:var(--font-body);color:var(--muted);max-width:290px;line-height:1.9;margin-bottom:32px;font-size:12px;}
 .hero-sub .hl{color:var(--yellow);font-family:var(--font-condensed);font-size:15px;}
-.hero-text{position:relative;z-index:1;}
 .hero-buttons{display:flex;gap:10px;flex-wrap:wrap;}
-.hero-img-box{position:relative;z-index:1;height:500px;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;}
-.hero-img-box img{width:100%;height:100%;object-fit:cover;filter:grayscale(15%);}
-.hero-img-placeholder{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--muted);}
-.hero-img-placeholder .big{font-size:64px;opacity:.18;}
-.hero-img-placeholder p{font-size:10px;letter-spacing:.2em;text-transform:uppercase;}
-.hero-badge{position:absolute;top:14px;right:14px;background:var(--yellow);color:#000;font-size:9px;letter-spacing:.15em;padding:4px 9px;font-weight:700;z-index:2;}
 /* MARQUEE */
-.marquee-wrap{border-top:1px solid var(--glass-border);border-bottom:1px solid var(--glass-border);overflow:hidden;padding:11px 0;background:var(--dark);background-image:repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(255,255,255,0.008) 60px,rgba(255,255,255,0.008) 61px);}
+.marquee-wrap{border-top:1px solid var(--glass-border);border-bottom:1px solid var(--glass-border);overflow:hidden;padding:11px 0;background:var(--dark);background-image:repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(255,255,255,0.008) 60px,rgba(255,255,255,0.008) 61px);position:relative;z-index:1;}
 .marquee-track{display:flex;width:max-content;animation:marquee 22s linear infinite;}
 .marquee-item{display:flex;align-items:center;gap:18px;padding:0 18px;font-family:var(--font-condensed);font-size:15px;letter-spacing:0.15em;color:var(--muted);white-space:nowrap;}
 .marquee-item .dot{width:5px;height:5px;background:var(--yellow);border-radius:50%;flex-shrink:0;}
@@ -222,11 +221,12 @@ footer{border-top:1px solid var(--glass-border);padding:36px 48px;display:grid;g
   .mobile-menu-btn{width:56px;height:36px;font-size:9px;letter-spacing:0.18em;padding:0 10px;}
   #mobile-menu a{padding:16px 14px;font-size:13px;}
   #hero{grid-template-columns:1fr;gap:24px;padding:74px 18px 48px;}
+  .hero-text{padding:0;}
+  .hero-img-box{height:220px;}
   .hero-title{font-size:clamp(56px,18vw,90px);line-height:0.86;}
   .hero-sub{font-size:13px;max-width:100%;}
   .hero-buttons{gap:8px;}
   .btn-glass{padding:12px 20px;font-size:11px;}
-  .hero-img-box{height:220px;}
   .marquee-item{font-size:12px;padding:0 12px;gap:12px;}
   section{padding:40px 18px;}
   .filters-wrap{gap:6px;margin-bottom:18px;}
@@ -279,8 +279,9 @@ footer{border-top:1px solid var(--glass-border);padding:36px 48px;display:grid;g
 <body>
 <div id="cursor"></div>
 <nav>
-  <a class="nav-logo" href="#" style="display:flex;align-items:center;">
+  <a class="nav-logo" href="#" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
     <img src="../assets/logo.png" alt="NICKX" class="nav-logo-img"/>
+    <span style="font-family:var(--font-display);font-size:28px;letter-spacing:0.12em;color:var(--yellow);text-transform:uppercase;font-weight:400;line-height:1;">NICK<span style="color:var(--text);">X</span></span>
   </a>
   <button class="mobile-menu-btn" onclick="toggleMobileMenu()">MENU</button>
   <div class="nav-right">
@@ -302,42 +303,23 @@ footer{border-top:1px solid var(--glass-border);padding:36px 48px;display:grid;g
   <div class="spray-overlay" aria-hidden="true">
     <svg viewBox="0 0 1200 700" xmlns="http://www.w3.org/2000/svg"
          style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.13;">
-      <!-- Spray blob top-right -->
-      <ellipse cx="1050" cy="90" rx="180" ry="60" fill="#d4ff00" opacity="0.6"
-               style="filter:blur(32px)"/>
-      <!-- Spray blob bottom-left -->
-      <ellipse cx="120" cy="580" rx="140" ry="50" fill="#d4ff00" opacity="0.45"
-               style="filter:blur(28px)"/>
-      <!-- Drip 1 -->
-      <path d="M980 0 Q985 80 978 160 Q974 200 980 260" stroke="#d4ff00"
-            stroke-width="5" fill="none" opacity="0.5" stroke-linecap="round"/>
-      <!-- Drip 2 -->
-      <path d="M1040 0 Q1048 60 1042 130 Q1038 170 1044 200 Q1048 230 1040 280"
-            stroke="#d4ff00" stroke-width="3.5" fill="none" opacity="0.35"
-            stroke-linecap="round"/>
-      <!-- Drip 3 — left side -->
-      <path d="M60 100 Q65 160 58 230 Q54 270 62 310"
-            stroke="#d4ff00" stroke-width="4" fill="none" opacity="0.3"
-            stroke-linecap="round"/>
-      <!-- Tag line scrawl — decorative abstract marks, top-left -->
-      <path d="M30 40 L90 38 M50 55 L100 52 M35 70 L80 68"
-            stroke="#d4ff00" stroke-width="2" opacity="0.25" stroke-linecap="round"/>
-      <!-- Large ghost X mark, far right background -->
-      <path d="M1100 300 L1180 420 M1180 300 L1100 420"
-            stroke="#d4ff00" stroke-width="28" opacity="0.04" stroke-linecap="round"/>
-      <!-- Spray spatter dots -->
+      <ellipse cx="1050" cy="90" rx="180" ry="60" fill="#d4ff00" opacity="0.6" style="filter:blur(32px)"/>
+      <ellipse cx="120" cy="580" rx="140" ry="50" fill="#d4ff00" opacity="0.45" style="filter:blur(28px)"/>
+      <path d="M980 0 Q985 80 978 160 Q974 200 980 260" stroke="#d4ff00" stroke-width="5" fill="none" opacity="0.5" stroke-linecap="round"/>
+      <path d="M1040 0 Q1048 60 1042 130 Q1038 170 1044 200 Q1048 230 1040 280" stroke="#d4ff00" stroke-width="3.5" fill="none" opacity="0.35" stroke-linecap="round"/>
+      <path d="M60 100 Q65 160 58 230 Q54 270 62 310" stroke="#d4ff00" stroke-width="4" fill="none" opacity="0.3" stroke-linecap="round"/>
+      <path d="M30 40 L90 38 M50 55 L100 52 M35 70 L80 68" stroke="#d4ff00" stroke-width="2" opacity="0.25" stroke-linecap="round"/>
+      <path d="M1100 300 L1180 420 M1180 300 L1100 420" stroke="#d4ff00" stroke-width="28" opacity="0.04" stroke-linecap="round"/>
       <circle cx="920" cy="180" r="3" fill="#d4ff00" opacity="0.4"/>
       <circle cx="935" cy="170" r="1.5" fill="#d4ff00" opacity="0.3"/>
       <circle cx="910" cy="195" r="2" fill="#d4ff00" opacity="0.35"/>
       <circle cx="945" cy="185" r="1" fill="#d4ff00" opacity="0.25"/>
       <circle cx="925" cy="162" r="2.5" fill="#d4ff00" opacity="0.2"/>
-      <!-- Bottom spatter -->
       <circle cx="200" cy="620" r="2.5" fill="#d4ff00" opacity="0.3"/>
       <circle cx="212" cy="612" r="1.5" fill="#d4ff00" opacity="0.22"/>
       <circle cx="190" cy="630" r="2" fill="#d4ff00" opacity="0.28"/>
     </svg>
   </div>
-  <div class="hero-grid"></div>
   <div class="hero-text">
     <div class="hero-tag">always trending · fresh drops</div>
     <h1 class="hero-title"><span class="brand">NICK</span>X</h1>
@@ -349,95 +331,12 @@ footer{border-top:1px solid var(--glass-border);padding:36px 48px;display:grid;g
   </div>
   <div class="hero-img-box" id="hero-img">
     <div class="hero-badge">NEW DROP</div>
-    <div class="hero-artwork" style="
-  width:100%; height:100%;
-  display:flex; align-items:center; justify-content:center;
-  position:relative; overflow:hidden;
-">
-  <svg viewBox="0 0 400 530" xmlns="http://www.w3.org/2000/svg"
-       style="width:100%;height:100%;position:absolute;inset:0;">
-    <!-- Background wall texture blocks -->
-    <rect width="400" height="530" fill="#0a0a0a"/>
-    <rect x="0" y="0" width="400" height="530"
-          fill="url(#wallGrain)" opacity="0.08"/>
-    <defs>
-      <filter id="glow">
-        <feGaussianBlur stdDeviation="6" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-      <filter id="sprayBlur">
-        <feGaussianBlur stdDeviation="3"/>
-      </filter>
-    </defs>
-
-    <!-- Large spray blob background -->
-    <ellipse cx="200" cy="265" rx="160" ry="200" fill="#d4ff00" opacity="0.04"
-             filter="url(#sprayBlur)"/>
-
-    <!-- Brick-wall horizontal lines suggestion -->
-    <line x1="0" y1="88" x2="400" y2="88" stroke="#1a1a1a" stroke-width="1"/>
-    <line x1="0" y1="176" x2="400" y2="176" stroke="#1a1a1a" stroke-width="1"/>
-    <line x1="0" y1="264" x2="400" y2="264" stroke="#1a1a1a" stroke-width="1"/>
-    <line x1="0" y1="352" x2="400" y2="352" stroke="#1a1a1a" stroke-width="1"/>
-    <line x1="0" y1="440" x2="400" y2="440" stroke="#1a1a1a" stroke-width="1"/>
-
-    <!-- Ghost large X artwork -->
-    <path d="M60 80 L340 450 M340 80 L60 450"
-          stroke="#d4ff00" stroke-width="55" opacity="0.035" stroke-linecap="round"/>
-
-    <!-- Bold drip lines from top -->
-    <path d="M120 0 Q125 70 118 150 Q114 200 122 270 Q126 310 118 370"
-          stroke="#d4ff00" stroke-width="7" fill="none" opacity="0.55"
-          stroke-linecap="round" filter="url(#glow)"/>
-    <path d="M155 0 Q162 50 156 110 Q152 145 160 185"
-          stroke="#d4ff00" stroke-width="4.5" fill="none" opacity="0.35"
-          stroke-linecap="round"/>
-    <path d="M280 0 Q285 90 278 180 Q274 230 282 300 Q286 340 278 400"
-          stroke="#d4ff00" stroke-width="6" fill="none" opacity="0.5"
-          stroke-linecap="round" filter="url(#glow)"/>
-    <path d="M310 0 Q317 60 310 130"
-          stroke="#d4ff00" stroke-width="3.5" fill="none" opacity="0.3"
-          stroke-linecap="round"/>
-
-    <!-- Spray spatter clusters -->
-    <circle cx="100" cy="320" r="4" fill="#d4ff00" opacity="0.5"/>
-    <circle cx="112" cy="308" r="2.5" fill="#d4ff00" opacity="0.38"/>
-    <circle cx="90" cy="332" r="3" fill="#d4ff00" opacity="0.42"/>
-    <circle cx="120" cy="328" r="1.8" fill="#d4ff00" opacity="0.28"/>
-    <circle cx="95" cy="300" r="2" fill="#d4ff00" opacity="0.3"/>
-    <circle cx="108" cy="340" r="1.5" fill="#d4ff00" opacity="0.22"/>
-
-    <circle cx="300" cy="200" r="3.5" fill="#d4ff00" opacity="0.45"/>
-    <circle cx="315" cy="190" r="2" fill="#d4ff00" opacity="0.32"/>
-    <circle cx="290" cy="212" r="2.5" fill="#d4ff00" opacity="0.38"/>
-    <circle cx="320" cy="208" r="1.5" fill="#d4ff00" opacity="0.25"/>
-
-    <!-- Abstract graffiti mark — top left -->
-    <path d="M20 30 Q35 22 48 34 Q52 40 44 50 Q32 58 22 48 Q16 40 24 32"
-          fill="none" stroke="#d4ff00" stroke-width="3" opacity="0.4"
-          stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M34 58 L32 78" stroke="#d4ff00" stroke-width="3"
-          opacity="0.35" stroke-linecap="round"/>
-
-    <!-- Bold NICKX lettering in green -->
-    <text x="50%" y="52%" text-anchor="middle" dominant-baseline="middle"
-          font-family="'Bebas Neue', Impact, sans-serif"
-          font-size="110" letter-spacing="8"
-          fill="#d4ff00" opacity="0.12">NICKX</text>
-
-    <!-- Foreground glow line at bottom -->
-    <rect x="0" y="500" width="400" height="30" fill="#d4ff00" opacity="0.06"
-          filter="url(#sprayBlur)"/>
-  </svg>
-
-  <!-- Overlay label -->
-  <div style="
-    position:absolute; bottom:16px; left:16px;
-    font-family:'Barlow Condensed',sans-serif;
-    font-size:10px; letter-spacing:0.28em;
-    color:rgba(212,255,0,0.6); text-transform:uppercase;
-  ">latest collection</div>
-</div>
+    <div id="hero-gif-container" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+      <div class="hero-img-placeholder">
+        <div class="big">gif is yet to be uploaded</div>
+        <p>1080x1080</p>
+      </div>
+    </div>
   </div>
 </section>
 <!-- MARQUEE -->
@@ -583,6 +482,7 @@ footer{border-top:1px solid var(--glass-border);padding:36px 48px;display:grid;g
           <div class="field"><label>PIN Code <span class="req">*</span></label><input type="text" id="a-pin" placeholder="560001" maxlength="6"/></div>
         </div>
         <div class="f-err" id="addr-err"></div>
+        <div id="delivery-calc-status" style="margin-top:12px;font-size:11px;color:var(--muted);"></div>
         <div style="display:flex;gap:9px;margin-top:14px;">
           <button class="btn-glass" onclick="coGoStep(1)" style="padding:12px 16px;">BACK</button>
           <button class="btn-glass primary" style="flex:1;justify-content:center;padding:12px;" onclick="submitAddress()">CONTINUE TO PAYMENT</button>
@@ -596,7 +496,12 @@ footer{border-top:1px solid var(--glass-border);padding:36px 48px;display:grid;g
         <div id="upi-section">
           <div class="upi-amount"><div class="amt" id="pay-amt">₹0</div><div class="lbl">total to pay</div></div>
           <div id="qr-box"></div>
-          <div class="upi-id-disp"><div class="uid" id="disp-upi-id">loading...</div><div class="usub">UPI ID — pay manually if QR doesn't scan</div></div>
+          <div style="text-align:center;margin-top:16px;">
+            <div style="font-family:var(--font-display);font-size:24px;color:var(--yellow);margin-bottom:4px;" id="disp-upi-id">loading...</div>
+            <div style="font-family:var(--font-display);font-size:32px;color:var(--text);margin-bottom:4px;" id="pay-amt-display">₹0</div>
+            <div style="font-size:11px;color:var(--muted);letter-spacing:0.1em;margin-bottom:12px;">Scan with GPay / PhonePe / Paytm / BHIM</div>
+            <button class="btn-glass" onclick="copyUpiId()" style="padding:8px 16px;font-size:10px;">COPY UPI ID</button>
+          </div>
           <div class="upi-steps-box">
             <ol>
               <li>Open <span>GPay / PhonePe / Paytm</span></li>
@@ -657,8 +562,8 @@ let activeCat='all',searchQ='',priceMin=null,priceMax=null,searchTimer=null;
 let siteConfig={upiId:'',merchantName:'NICKX',deliveryCharge:99,freeDeliveryAbove:1999};
 let customerToken=localStorage.getItem('void_customer_token')||'';
 let customerData=JSON.parse(localStorage.getItem('void_customer_data')||'null');
-let selectedAddress=null,tempOrderRef=null;
-async function loadConfig(){try{const r=await fetch('/api/config');const d=await r.json();if(d.upiId!==undefined)siteConfig=d;}catch{}}
+let selectedAddress=null,tempOrderRef=null,calculatedDelivery=null,deliveryInfo=null;
+async function loadConfig(){try{const r=await fetch('/api/config');const d=await r.json();if(d.upiId!==undefined)siteConfig=d;if(d.heroGifUrl){const container=document.getElementById('hero-gif-container');container.innerHTML=`<img src="${d.heroGifUrl}" alt="Hero GIF" style="width:100%;height:100%;object-fit:cover;"/>`;}}catch{}}
 async function fetchProducts(){
   showSkeleton();
   try{const r=await fetch('/api/products');const d=await r.json();allProducts=d.data||[];buildCatFilters();updateHeroImg();renderGrid();}
@@ -716,11 +621,13 @@ window.openCart=function(){document.getElementById('cart-drawer').classList.add(
 window.closeCart=function(){document.getElementById('cart-drawer').classList.remove('open');document.getElementById('cart-overlay').classList.remove('show');document.body.style.overflow='';};
 function renderCoSummary(){
   const{subtotal,delivery,total}=getCartTotals();
+  const finalDelivery=calculatedDelivery!==null?calculatedDelivery:delivery;
+  const finalTotal=subtotal+finalDelivery;
   document.getElementById('co-subtotal').textContent=`₹${subtotal.toLocaleString('en-IN')}`;
-  document.getElementById('co-delivery').innerHTML=delivery===0?'<span style="color:var(--yellow)">FREE</span>':`₹${delivery}`;
-  document.getElementById('co-total').textContent=`₹${total.toLocaleString('en-IN')}`;
+  document.getElementById('co-delivery').innerHTML=finalDelivery===0?'<span style="color:var(--yellow)">FREE</span>':`₹${finalDelivery}`;
+  document.getElementById('co-total').textContent=`₹${finalTotal.toLocaleString('en-IN')}`;
   document.getElementById('co-summary-items').innerHTML=cart.map(i=>`<div class="sum-item"><div><div class="sum-item-name">${i.name}</div><div class="sum-item-meta">Qty: ${i.qty}</div></div><div class="sum-item-price">₹${(i.price*i.qty).toLocaleString('en-IN')}</div></div>`).join('');
-  return{subtotal,delivery,total};
+  return{subtotal,delivery:finalDelivery,total:finalTotal};
 }
 window.openCheckout=function(){
   if(!cart.length){showToast('your cart is empty!');return;}
@@ -762,7 +669,7 @@ async function loadSavedAddresses(){
   }catch{}
 }
 window.pickAddr=function(i){const a=window._savedAddrs[i];['a-name','a-mobile','a-line1','a-line2','a-landmark','a-city','a-district','a-state','a-pin'].forEach((id,j)=>{document.getElementById(id).value=[a.fullName,a.mobile,a.line1,a.line2,a.landmark||'',a.city,a.district,a.state,a.pin][j];});document.querySelectorAll('.saved-addr').forEach((el,j)=>el.classList.toggle('selected',i===j));};
-window.submitAddress=function(){
+window.submitAddress=async function(){
   const err=document.getElementById('addr-err');err.classList.remove('show');
   const address={fullName:document.getElementById('a-name').value.trim(),mobile:document.getElementById('a-mobile').value.trim(),line1:document.getElementById('a-line1').value.trim(),line2:document.getElementById('a-line2').value.trim(),landmark:document.getElementById('a-landmark').value.trim(),city:document.getElementById('a-city').value.trim(),district:document.getElementById('a-district').value.trim(),state:document.getElementById('a-state').value,pin:document.getElementById('a-pin').value.trim()};
   const req=['fullName','mobile','line1','line2','city','district','state','pin'];const lbl={fullName:'Full Name',mobile:'Mobile',line1:'House/Flat',line2:'Street',city:'City',district:'District',state:'State',pin:'PIN Code'};
@@ -771,6 +678,35 @@ window.submitAddress=function(){
   if(!/^[0-9]{6}$/.test(address.pin)){err.textContent='PIN must be 6 digits';err.classList.add('show');return;}
   selectedAddress=address;
   if(customerToken)fetch('/api/customers/address',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+customerToken},body:JSON.stringify(address)}).catch(()=>{});
+  const status=document.getElementById('delivery-calc-status');
+  status.textContent='Calculating delivery...';
+  try{
+    const fullAddress=`${address.line1}, ${address.line2}, ${address.city}, ${address.district}, ${address.state} ${address.pin}`;
+    const r=await fetch('/api/calculate-delivery',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({destAddress:fullAddress})});
+    const d=await r.json();
+    if(d.success){
+      calculatedDelivery=d.price;
+      deliveryInfo={distanceKm:d.distanceKm,zoneLabel:d.label};
+      status.innerHTML=`Delivery to ${address.city}: ${d.label} — ₹${d.price} (${d.distanceKm} km)`;
+      status.style.color='var(--yellow)';
+    }else if(d.fallback){
+      calculatedDelivery=d.price;
+      deliveryInfo={distanceKm:null,zoneLabel:d.label};
+      status.textContent=`Could not calculate exact distance. Standard delivery: ₹${d.price}`;
+      status.style.color='var(--muted)';
+    }else{
+      calculatedDelivery=null;
+      deliveryInfo=null;
+      status.textContent=d.message||'Could not calculate delivery';
+      status.style.color='#ff6060';
+    }
+  }catch{
+    calculatedDelivery=null;
+    deliveryInfo=null;
+    status.textContent='Delivery calculation failed. Using standard rate.';
+    status.style.color='#ff6060';
+  }
+  renderCoSummary();
   coGoStep(3);
 };
 function buildQR(){
@@ -778,20 +714,27 @@ function buildQR(){
   const ref=`NICKX-${Date.now().toString(36).toUpperCase()}`;tempOrderRef=ref;
   const amt=total.toFixed(2);
   document.getElementById('pay-amt').textContent=`₹${total.toLocaleString('en-IN')}`;
+  document.getElementById('pay-amt-display').textContent=`₹${amt}`;
   document.getElementById('pay-amt-2').textContent=`₹${total.toLocaleString('en-IN')}`;
   document.getElementById('pay-ref').textContent=ref;
   document.getElementById('disp-upi-id').textContent=siteConfig.upiId||'UPI ID not set';
   const box=document.getElementById('qr-box');box.innerHTML='';
   if(!siteConfig.upiId){document.getElementById('no-upi-warn').style.display='block';return;}
   const upiStr=`upi://pay?pa=${siteConfig.upiId}&pn=${encodeURIComponent(siteConfig.merchantName||'NICKX')}&am=${amt}&cu=INR&tn=${ref}`;
-  try{new QRCode(box,{text:upiStr,width:200,height:200,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H});}
+  try{new QRCode(box,{text:upiStr,width:220,height:220,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H});}
   catch{box.innerHTML='<div style="padding:14px;border:1px solid var(--glass-border);color:var(--muted);text-align:center;font-size:11px;">QR failed. Pay via UPI ID above.</div>';}
 }
+window.copyUpiId=function(){
+  if(siteConfig.upiId){
+    navigator.clipboard.writeText(siteConfig.upiId);
+    showToast('UPI ID copied');
+  }
+};
 window.placeOrder=async function(){
   const upiRef=document.getElementById('upi-ref').value.trim();const err=document.getElementById('pay-err');err.classList.remove('show');
   if(!upiRef){err.textContent='Enter your UPI Transaction ID after paying';err.classList.add('show');return;}
   const{subtotal,delivery,total}=renderCoSummary();
-  const body={items:cart,address:selectedAddress,subtotal,deliveryCharge:delivery,total,customerEmail:customerData?.email||'',upiRef};
+  const body={items:cart,address:selectedAddress,subtotal,deliveryCharge:delivery,total,customerEmail:customerData?.email||'',upiRef,distanceKm:deliveryInfo?.distanceKm||null,zoneLabel:deliveryInfo?.zoneLabel||null};
   try{
     const headers={'Content-Type':'application/json'};if(customerToken)headers['Authorization']='Bearer '+customerToken;
     const r=await fetch('/api/orders',{method:'POST',headers,body:JSON.stringify(body)});const d=await r.json();

@@ -26,7 +26,9 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 const cs = new CloudinaryStorage({ cloudinary, params: async () => ({ folder:"nickx_products", public_id:uuidv4(), allowed_formats:["jpg","jpeg","png","webp"], transformation:[{width:1200,height:1600,crop:"limit",quality:"auto"}] }) });
+const heroCs = new CloudinaryStorage({ cloudinary, params: async () => ({ folder:"nickx_hero", public_id:"hero_gif", allowed_formats:["jpg","jpeg","png","webp","gif"], transformation:[{width:1080,height:1080,crop:"limit",quality:"auto"}] }) });
 const upload = multer({ storage:cs, limits:{ fileSize:20*1024*1024 } });
+const uploadHero = multer({ storage:heroCs, limits:{ fileSize:20*1024*1024 } });
 const getImageUrl = f => f ? f.path : null;
 
 app.use(cors());
@@ -72,8 +74,107 @@ function requireCustomer(req,res,next){
   catch{ res.status(401).json({success:false,message:"Session expired"}); }
 }
 
+// ── Haversine formula ───────────────────────────────────────────────────────────
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// ── Nominatim geocoding ─────────────────────────────────────────────────────────
+async function geocodeAddress(address) {
+  try {
+    const encoded = encodeURIComponent(address);
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`, {
+      headers: { 'User-Agent': 'nickx-store' }
+    });
+    const data = await response.json();
+    if (data && data.length > 0) {
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    }
+    return null;
+  } catch (err) {
+    console.error('Geocoding error:', err.message);
+    return null;
+  }
+}
+
+// ── Delivery config ─────────────────────────────────────────────────────────────
+function loadDeliveryConfig() {
+  return loadJson("delivery-config.json", {
+    sourceAddress: "",
+    sourceLat: null,
+    sourceLng: null,
+    zones: [
+      { label: "Local", minKm: 0, maxKm: 15, price: 20 },
+      { label: "City", minKm: 15, maxKm: 40, price: 30 },
+      { label: "State", minKm: 40, maxKm: 200, price: 60 },
+      { label: "National", minKm: 200, maxKm: 99999, price: 100 }
+    ]
+  });
+}
+function saveDeliveryConfig(config) { saveJson("delivery-config.json", config); }
+
+app.get("/api/delivery-config",(req,res)=>res.json({success:true,data:loadDeliveryConfig()}));
+app.post("/api/delivery-config", requireAdmin, async(req,res)=>{
+  try {
+    const config = req.body;
+    if (config.sourceAddress && (!config.sourceLat || !config.sourceLng)) {
+      const coords = await geocodeAddress(config.sourceAddress);
+      if (coords) {
+        config.sourceLat = coords.lat;
+        config.sourceLng = coords.lng;
+      }
+    }
+    saveDeliveryConfig(config);
+    res.json({success:true,data:config});
+  } catch(err) { res.status(500).json({success:false,message:err.message}); }
+});
+app.post("/api/calculate-delivery", async(req,res)=>{
+  try {
+    const { destAddress, destLat, destLng } = req.body;
+    const config = loadDeliveryConfig();
+    if (!config.sourceLat || !config.sourceLng) {
+      return res.json({success:false,message:"Source location not configured"});
+    }
+    let destCoords;
+    if (destLat && destLng) {
+      destCoords = { lat: parseFloat(destLat), lng: parseFloat(destLng) };
+    } else if (destAddress) {
+      destCoords = await geocodeAddress(destAddress);
+      if (!destCoords) {
+        const maxZone = config.zones[config.zones.length - 1];
+        return res.json({success:true,distanceKm:null,zone:maxZone.label,price:maxZone.price,label:maxZone.label,fallback:true});
+      }
+    } else {
+      return res.status(400).json({success:false,message:"Destination required"});
+    }
+    const distanceKm = haversineKm(config.sourceLat, config.sourceLng, destCoords.lat, destCoords.lng);
+    const zone = config.zones.find(z => distanceKm >= z.minKm && distanceKm < z.maxKm) || config.zones[config.zones.length - 1];
+    res.json({success:true,distanceKm:Math.round(distanceKm * 10) / 10,zone:zone.label,price:zone.price,label:zone.label});
+  } catch(err) { res.status(500).json({success:false,message:err.message}); }
+});
+
 // ── Config endpoint ───────────────────────────────────────────────────────────
-app.get("/api/config",(req,res)=>res.json({success:true,upiId:UPI_ID,merchantName:MERCHANT_NAME,deliveryCharge:DELIVERY_CHARGE,freeDeliveryAbove:FREE_DELIVERY_ABOVE}));
+app.get("/api/config",(req,res)=>{
+  const heroGifUrl = loadJson("hero-gif.json", {url:null}).url;
+  res.json({success:true,upiId:UPI_ID,merchantName:MERCHANT_NAME,deliveryCharge:DELIVERY_CHARGE,freeDeliveryAbove:FREE_DELIVERY_ABOVE,heroGifUrl});
+});
+
+// ── Hero GIF upload ────────────────────────────────────────────────────────────
+app.post("/api/hero-gif",requireAdmin,uploadHero.single("heroGif"),async(req,res)=>{
+  try{
+    if(!req.file) return res.status(400).json({success:false,message:"No file uploaded"});
+    const heroGifUrl = getImageUrl(req.file);
+    saveJson("hero-gif.json",{url:heroGifUrl});
+    res.json({success:true,url:heroGifUrl});
+  }catch(err){res.status(500).json({success:false,message:err.message});}
+});
 
 // ── Admin auth ────────────────────────────────────────────────────────────────
 app.post("/api/auth/login",(req,res)=>{
@@ -177,7 +278,7 @@ app.get("/api/categories",(req,res)=>res.json({success:true,data:[...new Set(loa
 // ── Orders ────────────────────────────────────────────────────────────────────
 app.post("/api/orders",(req,res)=>{
   try{
-    const {items,address,subtotal,deliveryCharge,total,customerEmail,upiRef}=req.body;
+    const {items,address,subtotal,deliveryCharge,total,customerEmail,upiRef,distanceKm,zoneLabel}=req.body;
     if(!items?.length||!address||!total) return res.status(400).json({success:false,message:"Missing required fields"});
     // Decrement stock
     const products=loadProducts();
@@ -188,7 +289,7 @@ app.post("/api/orders",(req,res)=>{
     saveProducts(products);
     const orders=loadJson("orders.json",[]);
     const orderId=`ORD-${Date.now().toString(36).toUpperCase()}-${uuidv4().slice(0,4).toUpperCase()}`;
-    const order={id:orderId,items,address,subtotal:parseFloat(subtotal),deliveryCharge:parseFloat(deliveryCharge),total:parseFloat(total),customerName:address.fullName,customerEmail:customerEmail||"",customerPhone:address.mobile,upiRef:upiRef||"",status:"payment_pending",createdAt:new Date().toISOString()};
+    const order={id:orderId,items,address,subtotal:parseFloat(subtotal),deliveryCharge:parseFloat(deliveryCharge),total:parseFloat(total),customerName:address.fullName,customerEmail:customerEmail||"",customerPhone:address.mobile,upiRef:upiRef||"",status:"payment_pending",distanceKm:distanceKm||null,zoneLabel:zoneLabel||null,createdAt:new Date().toISOString()};
     const auth=req.headers.authorization;
     if(auth?.startsWith("Bearer ")){
       try{ const d=jwt.verify(auth.split(" ")[1],JWT_SECRET); if(d.customerId) order.customerId=d.customerId; }catch{}
