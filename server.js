@@ -186,11 +186,37 @@ app.post("/api/calculate-delivery", async(req,res)=>{
     } else {
       return res.status(400).json({success:false,message:"Destination required"});
     }
-    const distanceKm = haversineKm(sourceLat, sourceLng, destCoords.lat, destCoords.lng);
-    const zone = getZoneForDistance(distanceKm, config.zones);
+    console.log("[delivery] requested address text:", destAddress || "");
+    console.log("[delivery] geocoded lat/lng:", { lat: destCoords.lat, lng: destCoords.lng });
+
+    let distanceMeters;
+    try {
+      const { getDistance } = require("geolib");
+      distanceMeters = getDistance(
+        { latitude: sourceLat, longitude: sourceLng },
+        { latitude: destCoords.lat, longitude: destCoords.lng }
+      );
+    } catch {
+      distanceMeters = haversineKm(sourceLat, sourceLng, destCoords.lat, destCoords.lng) * 1000;
+    }
+    const distanceKm = Number(distanceMeters) / 1000;
+
+    const validZones = normalizeZones(config.zones);
+    let zone = null;
+    for (const z of validZones) {
+      const minKm = Number(z.minKm);
+      const maxKm = Number(z.maxKm);
+      if (distanceKm >= minKm && distanceKm < maxKm) {
+        zone = z;
+        break;
+      }
+    }
+    if (!zone) zone = getNationalMaxZone(validZones);
     if (!zone) {
       return res.status(400).json({success:false,message:"No delivery zone available for this address"});
     }
+    console.log("[delivery] final calculated distance km:", distanceKm);
+    console.log("[delivery] matched zone + price:", { zone: zone.label, price: zone.price });
     res.json({success:true,distanceKm:Math.round(distanceKm * 10) / 10,zone:zone.label,price:zone.price,label:zone.label});
   } catch(err) { res.status(500).json({success:false,message:err.message}); }
 });
