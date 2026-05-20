@@ -360,12 +360,18 @@
   <!-- Source Location -->
   <div style="border:1px solid var(--glass-border);background:var(--dark);padding:24px;margin-bottom:24px;">
     <div style="font-family:var(--font-display);font-size:20px;margin-bottom:16px;">SOURCE LOCATION</div>
-    <div class="field">
-      <label>Shop / Warehouse Address</label>
-      <input type="text" id="source-address" placeholder="12 MG Road, Koramangala, Bengaluru 560001" />
+    <div class="field-row">
+      <div class="field">
+        <label>Store Latitude</label>
+        <input type="number" id="source-lat" placeholder="12.9716" step="any" />
+      </div>
+      <div class="field">
+        <label>Store Longitude</label>
+        <input type="number" id="source-lng" placeholder="77.5946" step="any" />
+      </div>
     </div>
     <div style="display:flex;gap:10px;margin-top:12px;">
-      <button class="btn-glass primary" onclick="saveSourceLocation()">SAVE & GEOCODE</button>
+      <button class="btn-glass primary" onclick="saveSourceLocation()">SAVE COORDINATES</button>
     </div>
     <div id="source-status" style="margin-top:12px;font-size:11px;color:var(--muted);"></div>
   </div>
@@ -805,10 +811,11 @@ async function fetchDeliveryConfig() {
     const data = await res.json();
     if (data.success) {
       deliveryConfig = data.data;
-      document.getElementById('source-address').value = deliveryConfig.sourceAddress || '';
+      document.getElementById('source-lat').value = deliveryConfig.sourceLat || '';
+      document.getElementById('source-lng').value = deliveryConfig.sourceLng || '';
       const status = document.getElementById('source-status');
       if (deliveryConfig.sourceLat && deliveryConfig.sourceLng) {
-        status.textContent = `Source set: ${deliveryConfig.sourceAddress} (${deliveryConfig.sourceLat.toFixed(4)}, ${deliveryConfig.sourceLng.toFixed(4)})`;
+        status.textContent = `Source set: ${deliveryConfig.sourceLat.toFixed(6)}, ${deliveryConfig.sourceLng.toFixed(6)}`;
         status.style.color = 'var(--yellow)';
       } else {
         status.textContent = 'Source location not configured';
@@ -820,13 +827,14 @@ async function fetchDeliveryConfig() {
 }
 
 async function saveSourceLocation() {
-  const address = document.getElementById('source-address').value;
-  if (!address) return alert('Please enter an address');
+  const lat = document.getElementById('source-lat').value;
+  const lng = document.getElementById('source-lng').value;
+  if (!lat || !lng) return alert('Please enter both latitude and longitude');
   try {
     const res = await apiReq('/api/delivery-config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...deliveryConfig, sourceAddress: address })
+      body: JSON.stringify({ ...deliveryConfig, sourceLat: parseFloat(lat), sourceLng: parseFloat(lng) })
     });
     const data = await res.json();
     if (data.success) {

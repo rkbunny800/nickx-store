@@ -124,13 +124,6 @@ app.get("/api/delivery-config",(req,res)=>res.json({success:true,data:loadDelive
 app.post("/api/delivery-config", requireAdmin, async(req,res)=>{
   try {
     const config = req.body;
-    if (config.sourceAddress && (!config.sourceLat || !config.sourceLng)) {
-      const coords = await geocodeAddress(config.sourceAddress);
-      if (coords) {
-        config.sourceLat = coords.lat;
-        config.sourceLng = coords.lng;
-      }
-    }
     saveDeliveryConfig(config);
     res.json({success:true,data:config});
   } catch(err) { res.status(500).json({success:false,message:err.message}); }
